@@ -9,6 +9,7 @@ import os, sys
 import time
 from sklearn.metrics import precision_score, recall_score, precision_recall_curve, roc_curve
 import statistics
+import scipy.integrate as integrate
 
 # add the parent directory to the path
 sys.path.insert(0, os.path.abspath("../../"))
@@ -19,6 +20,31 @@ from common import *
 from constants_model import *
 from model import *
 # ---------------
+
+def kde_normalize_all_scores(kde, x_vals):
+    scores_norm = []
+    for x in x_vals:
+        ccdf = kde_ccdf(kde, x)
+        scores_norm.append(ccdf)
+    return scores_norm
+
+def kde_cdf(kde, x):
+    cdf = kde_integrate_quad(kde, -np.inf, x)[0]
+    # print("x, cdf: ", x, cdf)
+    return cdf
+
+def kde_ccdf(kde, x):
+    cdf = kde_cdf(kde, x)
+    return 0.0 if cdf > 1.0 else 1.0 - cdf
+
+def kde_integrate_quad(kde, xmin, xmax):
+    kde_fct = lambda x: np.exp(kde.score_samples(np.array([x]).reshape(-1,1)))[0]    
+    return integrate.quad(kde_fct, xmin, xmax, epsabs=1.49e-20)
+
+def kde_cdf(kde, x):
+    cdf = kde_integrate_quad(kde, -np.inf, x)[0]
+    # print("x, cdf: ", x, cdf)
+    return cdf
 
 def print_statistics(scores_dict, ports):
     for port in ports:
